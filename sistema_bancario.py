@@ -33,7 +33,7 @@ numero_saques_hoje = 0
 
 id_operacao = 0
 
-historico = f'''{"Nenhum histórico encontrado.".center(DISPLAY_WIDTH, ".")}'''
+historico = f'''{"Não foram realizadas movimentações.".center(DISPLAY_WIDTH, ".")}'''
 
 def imprime_extrato(saldo_atual, historico_atual):
     """Imprime extrato com saldo e historico atualizados."""
