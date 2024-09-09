@@ -1,7 +1,7 @@
 '''Sistema Bancário'''
 
 # v1: Funcionamento básico, com opcões de depositar, sacar, exhibir extrato e sair
-# v2: Aumentar compartamentalização com funções. 
+# v2: Aumentar compartamentalização com funções.
     # 1. ✅ Criar função deposita().
     # 2. ✅ Criar função saque().
     # 3. ✅ Mudar função de extrato para receber saldo como argumento posicional
@@ -26,6 +26,8 @@
 # The above comment tells pylint not to flag variables for incorrect formatting
 # (By default pylint assumes all variables are constants and expects them to be UPPER_CASE)
 
+import datetime
+
 menu = '''
 Por favor, faça a sua escolha digitando um número
 da menu embaixo, e em seguida pressiona "enter":
@@ -38,8 +40,6 @@ da menu embaixo, e em seguida pressiona "enter":
 [0] Sair
 
 => '''
-
-import datetime
 
 LIMITE_VALOR_SACADO_DIARIO = 500
 LIMITE_SAQUES_DIARIOS = 3
@@ -99,6 +99,13 @@ def pausa():
     input('Aperta "enter" para continuar.')
 
 def cria_usuario():
+    """
+    Cria novo usuário e adiciona à lista "usuarios"
+
+    Returns:
+        usuarios[usuario{},...]: lista de dicionários "usuario"
+            com nome, data de nascimento, cpf, e endereco
+    """
     usuario = {"nome": None, "data_nascimento": None, "cpf": None, "endereco": None}
     usuario['nome'] = input("Nome completo: ")
     usuario['data_nascimento'] = input("Data de nascimento: ")
@@ -108,13 +115,20 @@ def cria_usuario():
             print("Usuário com esse CPF já cadastrado.")
             pausa()
             return usuarios
-    usuario['endereco'] = input("Endereço no formato 'logradouro, nro - bairro - cidade/sigla estado': ")
+    usuario['endereco'] = input("Endereço no formato\
+ 'logradouro, nro - bairro - cidade/sigla estado': ")
     usuarios.append(usuario)
     print("Usuário criado com sucesso!")
     pausa()
     return usuarios
 
 def achar_usuario_por_cpf():
+    """
+    Usar CPF para encontrar usuario
+
+    Returns:
+        usuario{}: returns usuario dict se encontrado
+    """
     cpf_procurado = input("CPF (somente números): ")
     for usuario in usuarios:
         if usuario["cpf"] == cpf_procurado:
@@ -122,6 +136,12 @@ def achar_usuario_por_cpf():
     return None
 
 def cria_conta():
+    """
+    Cria conta nova
+
+    Returns:
+        contas[conta{},...]: lista "contas" de dicionários "conta"
+    """
     usuario = achar_usuario_por_cpf()
     if usuario is None:
         print("Usuário não encontrado.")
@@ -166,6 +186,17 @@ def get_datetime_atual():
     return(data, hora)
 
 def checar_dia_novo(data_in, saques_hoje):
+    """
+    Caso é um dia novo, zerar o contador de saques
+
+    Args:
+        data_in (<class 'datetime.date'>): data controle para contadores de transações 
+        saques_hoje (int): contador de saques diários
+
+    Returns:
+        <class 'datetime.date'>: atualizado se dia novo, mesmo que entrou se não
+        saques_hoje (int) atualizado (zerado ou mesmo que entrou)
+    """
     if datetime.date.today() != data_in:
         saques_hoje = 0
         return (datetime.date.today(), saques_hoje)
@@ -286,7 +317,8 @@ def saque(valor, saldo_in, id_operacao_in, extrato_in, saques_hoje):
     saldo_formatado = centrar(formatar_valor(saldo_out))
 
     # update transaction history
-    extrato_out = extrato_in + f"{id_operacao_formatado}|{data}|{hora}|{operacao}|{valor_sacado_formatado}|{saldo_formatado}"
+    extrato_out = extrato_in + f"\
+{id_operacao_formatado}|{data}|{hora}|{operacao}|{valor_sacado_formatado}|{saldo_formatado}"
 
     # print success message
     print(f'''Você sacou R${valor:.2f}.
@@ -295,10 +327,11 @@ O seu saldo é R${saldo_out:.2f}.''')
 
     return (saldo_out, id_operacao_out, extrato_out, saques_hoje)
 
-def print_usuario():
+def print_usuarios_contas():
+    """Imprime usuarios e contas para fins de testagem"""
+    print("usuarios:")
     print(usuarios)
-
-def print_contas():
+    print("contas:")
     print(contas)
 
 while True:
@@ -360,12 +393,7 @@ while True:
     elif opcao == 6:
         # opção segredo para testes
         clear_screen()
-        print_usuario()
-
-    elif opcao == 7:
-        # opção segredo para testes
-        clear_screen()
-        print_contas()
+        print_usuarios_contas()
 
     else:
         # erro de digitação
