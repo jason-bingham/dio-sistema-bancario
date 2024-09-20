@@ -1,402 +1,608 @@
 '''Sistema Bancário'''
 
-# v1: Funcionamento básico, com opcões de depositar, sacar, exhibir extrato e sair
-# v2: Aumentar compartamentalização com funções.
-    # 1. ✅ Criar função deposita().
-    # 2. ✅ Criar função saque().
-    # 3. ✅ Mudar função de extrato para receber saldo como argumento posicional
-    # e extrato como argumento nomeado.
-        # NOTE: def f(pos1, pos2, /, pos_or_kw, *, kwd1, kwd2)
-    # 4. ✅ Adiciona data e hora no extrato das transações
-    # 5. ✅ Estabalece max. 3 saques por dia, verificado com datetime
-    # 6. ✅ Criar função: cria_usuário()
-        # O programa deve armanezar os usuarios em uma lista, um usuario é composto por: nome,
-        # data de nascimento, CPF e endereço. O endereço é uma string com o formato: logradouro,
-        # nro - bairro - cidade/sigla estado. Deve ser armazenado somente os numeros do cpf.
-        # Não podemos cadastrar 2 usuarios com o mesmo cpf.
-    # 7. ✅ Criar função: cria_conta()
-        # O programa deve armazenar contas em uma lista, uma conta e composta por: agencia,
-        # número da conta e usuario. O numero da conta e sequential, iniciando em 1.
-        # O número da agencia e fixo: "0001". O usuario pode ter mais de uma conta,
-        # mas uma conta pertence a somente um usuário.
-    # 8. ✅ Criar "testes" para verificar funções acima
-        # NOTE: Só criei funções para imprimir usuarios e contas, não testes de verdade.
+# v3: Modelando o Sistema Bancário em POO
+#
+# ✅ 1. <<interface>> Transacao(ABC)
+# @abstractmethod
+# registrar(conta: Conta)
+#
+# 2. class Deposito(Transacao)
+# ✅ propriedades:
+# numero: int -> str
+# valor: float -> str
+# saldo: float -> str
+# data: Datetime -> str
+# hora: Datetime -> str
+# tipo: str
+# métodos:
+# ❌ registrar(conta: Conta)
+#
+# 3. class Saque(Transacao)
+# ✅ propriedades:
+# numero: int -> str
+# valor: float -> str
+# saldo: float -> str
+# data: Datetime -> str
+# hora: Datetime -> str
+# tipo: str
+# métodos:
+# ❌ registrar(conta: Conta)
+#
+# ✅ 4. class Historico
+# propriedades:
+# transacoes: list[Transacao,]
+# métodos:
+# adicionar_transacao(transacao: Transacao)
+#
+# 5. class Cliente
+# ✅ propriedades:
+# endereco: str
+# contas: list[Conta]
+# métodos:
+# ❌ realizar_transacao(conta: Conta, transacao: Transacao)
+# ❌ adicionar_conta(conta: Conta)
+#
+# ✅ 6. class PessoaFisica(Cliente)
+# propriedades:
+# _cpf: str
+# _nome: str
+# _data_nascimento: date
+#
+# ✅ 7. class Conta
+# propriedades:
+# agencia: str
+# saldo: float
+# numero: int
+# cliente: Cliente
+# historico: Historico
+# numero_transacao: int
+# métodos:
+# saldo(): float
+# @classmethod: nova_conta(cls): Conta
+# sacar(valor: float): bool
+# depositar(valor: float): bool
+#
+# 8. class ContaCorrente(Conta):
+# propriedades:
+# limite: float
+# limite_saques: int
+# métodos:
+# sacar(valor: float): bool -- overrides parent
+#
+# 9. Lógica
+#
+# Note: Previous version tasks below ⬇️
+
 
 # pylint: disable-msg=C0103
 # The above comment tells pylint not to flag variables for incorrect formatting
-# (By default pylint assumes all variables are constants and expects them to be UPPER_CASE)
+# (By default pylint assumes all variables are constants and expects
+# them to be UPPER_CASE)
 
+
+# ~~ Imports ~~ #
+
+from __future__ import annotations
 import datetime
+from abc import ABC, abstractmethod
+import random
+from textwrap import dedent
 
-menu = '''
-Por favor, faça a sua escolha digitando um número
-da menu embaixo, e em seguida pressiona "enter":
 
-[1] Depositar
-[2] Sacar
-[3] Extrato
-[4] Novo Usuário
-[5] Nova Conta
-[0] Sair
+# ~~ Classes ~~ #
 
-=> '''
+class Transacao(ABC):  # pylint: disable=R0903
+    """
+    Abstract class para implementar através Deposito() e Saque()
+    """
+    @abstractmethod
+    def registrar(self, conta):
+        """Implementado embaixo"""
 
-LIMITE_VALOR_SACADO_DIARIO = 500
-LIMITE_SAQUES_DIARIOS = 3
 
-# Para extrato:
-DISPLAY_WIDTH = 100
-HALF_DISPLAY_WIDTH = int(DISPLAY_WIDTH / 2)
-COLUMN_ONE = 5
-EVEN_COLUMNS = int((DISPLAY_WIDTH - 5) / 5)
-DOUBLE_LINE = "".center(DISPLAY_WIDTH, "=")
-SINGLE_LINE = "".center(DISPLAY_WIDTH, "-")
-COLUMN_DIVS = " " * COLUMN_ONE + "|" + (" " * (EVEN_COLUMNS - 1) + "|") * 4
+class Deposito(Transacao):  # pylint: disable=R0903
+    """Objeto que vai ser adicionado à lista 'transacoes' do histórico"""
+    def __init__(self, numero, valor, saldo) -> None:
+        self.numero = str(numero).rjust(3, "0")
+        self.valor = "R$" + str(f'{valor:.2f}')
+        self.saldo = "R$" + str(f'{saldo:.2f}')
+        agora = datetime.datetime.now()
+        self.data = agora.strftime("%d/%m/%Y")
+        self.hora = agora.strftime("%H:%M")
+        self.tipo = "DEPOSITO"
 
-# Para contas:
-AGENCIA = "0001"
-contas = []
+    def registrar(self, conta):
+        pass
 
-usuarios = []
 
-saldo = 0.00
-valor_sacado_hoje = 0.00
-numero_saques_hoje = 0
-data_controle = datetime.date.today()
+class Saque(Transacao):  # pylint: disable=R0903
+    """Objeto que vai ser adicionado à lista 'transacoes' do histórico"""
+    def __init__(self, numero, valor, saldo) -> None:
+        self.numero = str(numero).rjust(3, "0")
+        self.valor = "R$" + str(f'{valor:.2f}')
+        self.saldo = "R$" + str(f'{saldo:.2f}')
+        agora = datetime.datetime.now()
+        self.data = agora.strftime("%d/%m/%Y")
+        self.hora = agora.strftime("%H:%M")
+        self.tipo = "SAQUE"
 
-id_operacao = 0
+    def registrar(self, conta):
+        pass
 
-extrato_sem_movimentacao = f'''{"Não foram realizadas movimentações.".center(DISPLAY_WIDTH, ".")}'''
-extrato = ""
-newline = "\n"
 
-def imprime_extrato(saldo_atual, /, *, extrato_atual):
-    """Imprime extrato com saldo e extrato atualizados."""
-    print(f'''
+class Historico:
+    """
+    Armazena lista de transações e print string de transações
+    formatado como tabela
+    """
+    def __init__(self) -> None:
+        self.transacoes: list[Transacao] = []
+        self.historico_transacoes = ""
+        self.DISPLAY_WIDTH = 100
+        self.COLUMN_ONE = 5
+        self.EVEN_COLUMNS = int((self.DISPLAY_WIDTH - self.COLUMN_ONE) / 5) - 1
+
+    def adicionar_transacao(self, transacao):
+        """
+        Atualiza histórico de transações toda vez que uma transação ocorre
+        """
+        self.transacoes.append(transacao)
+
+        numero_transacao = transacao.numero.center(self.COLUMN_ONE)
+        data = "|" + transacao.data.center(self.EVEN_COLUMNS)
+        hora = "|" + transacao.hora.center(self.EVEN_COLUMNS)
+        tipo = "|" + transacao.tipo.center(self.EVEN_COLUMNS)
+        valor = "|" + transacao.valor.center(self.EVEN_COLUMNS)
+        saldo = "|" + transacao.saldo.center(self.EVEN_COLUMNS)
+        str_transacao = (numero_transacao
+                         + data
+                         + hora
+                         + tipo
+                         + valor
+                         + saldo)
+
+        if len(self.transacoes) > 1:
+            self.historico_transacoes += "\n"
+        self.historico_transacoes += str_transacao
+
+    def __str__(self):
+        DOUBLE_LINE = "=" * self.DISPLAY_WIDTH
+        SINGLE_LINE = '-' * self.DISPLAY_WIDTH
+        COLUMN_DIVS = (" " * self.COLUMN_ONE + "|"
+                       + (" " * self.EVEN_COLUMNS + "|")
+                       * 4)
+        historico_sem_movimentacao = f'''\
+{"Nenhuma transação realizada".center(self.DISPLAY_WIDTH, " ")}'''
+        historico = f'''
 {DOUBLE_LINE}
-            
-{"Extrato".center(DISPLAY_WIDTH)}
+
+{f"Agência: {conta_ativa.agencia}, Conta: {conta_ativa.numero}".center(self.DISPLAY_WIDTH)}
 
 {DOUBLE_LINE}
-
-{"Histórico de Operações".center(DISPLAY_WIDTH, "-")}
-{"#".center(COLUMN_ONE, "-")}{"Data".center(EVEN_COLUMNS, "-")}{"Hora".center(EVEN_COLUMNS, "-")}\
-{"Operação".center(EVEN_COLUMNS, "-")}{"Valor".center(EVEN_COLUMNS, "-")}{"Saldo".center(EVEN_COLUMNS, "-")}
+{"Histórico".center(self.DISPLAY_WIDTH)}
+{DOUBLE_LINE}
+{" # ".center(self.COLUMN_ONE, " ")}{"|" + "Data".center(self.EVEN_COLUMNS, " ")}\
+{"|" + "Hora".center(self.EVEN_COLUMNS, " ")}{"|" + "Operação".center(self.EVEN_COLUMNS, " ")}\
+{"|" + "Valor".center(self.EVEN_COLUMNS, " ")}{"|" + "Saldo".center(self.EVEN_COLUMNS, " ")}
+{SINGLE_LINE}
 {COLUMN_DIVS}
-{extrato_sem_movimentacao if id_operacao == 0 else extrato_atual}
+{historico_sem_movimentacao if len(self.transacoes) == 0 else self.historico_transacoes}
 {COLUMN_DIVS}
 {DOUBLE_LINE}
-{f"Saldo atual: R${str(f'{saldo_atual:.2f}')}".center(DISPLAY_WIDTH)}
+{f"Saldo atual: {'R$0.00' if len(self.transacoes) == 0 else self.transacoes[-1].saldo}".center(self.DISPLAY_WIDTH)}
 {DOUBLE_LINE}
-    ''')
+'''
+        return historico
 
-def clear_screen():
+
+class Cliente:
+    """
+    Objeto para armazenar dados de clientes, incluindo a lista de contas ativas para cada cliente
+    """
+    def __init__(self, endereco) -> None:
+        self.endereco = endereco
+        self.contas: list[Conta] = []
+
+    def realizar_transacao(self, conta, transacao):
+        """Não usado"""
+
+    def adicionar_conta(self, conta):
+        """Não usado"""
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {', '.join([f'{chave}={valor}' for chave, valor in self.__dict__.items()])}"
+
+
+class PessoaFisica(Cliente):
+    """Herda de Cliente. Adiciona cpf, nome, e data de nascimento, com getters para cpf e nome"""
+    def __init__(self, cpf, nome, data_nascimento, endereco) -> None:
+        super().__init__(endereco)
+        self._cpf = cpf
+        self._nome = nome
+        self._data_nascimento = data_nascimento
+
+    @property
+    def cpf(self):
+        """getter"""
+        return self._cpf
+
+    @property
+    def nome(self):
+        """getter"""
+        return self._nome
+
+
+class Conta:
+    """
+    Armazena dados de conta, incluindo Histórico.
+    Executa Saques e Depósitos.
+    """
+    def __init__(self) -> None:
+        self._agencia = str(random.randint(1, 9999)).rjust(4, '0')
+        # self._agencia = "0001"
+        self._saldo = 0.00
+        self._numero = str(random.randint(1, 99999)).rjust(5, '0') + '-' + str(random.randint(0, 9))
+        # self._numero = len(cliente.contas) + 1
+        self._cliente = cliente
+        self.historico = Historico()
+        self.numero_transacao = 1
+
+    @classmethod
+    def nova_conta(cls) -> Conta:
+        """Gera nova instancia de Conta"""
+        return cls()
+
+    @property
+    def saldo(self) -> float:
+        """getter"""
+        return self._saldo
+
+    @saldo.setter
+    def saldo(self, value):
+        self._saldo = value
+
+    @property
+    def numero(self):
+        """getter"""
+        return self._numero
+
+    @property
+    def agencia(self):
+        """getter"""
+        return self._agencia
+
+    def sacar(self, valor) -> bool:
+        """
+        Checa contra regaras de saque, ajustar saldo, crie objeto Saque, e atualizar historico.
+        Devolve boolean para indicar sucesso ou falha
+        """
+        if valor <= 0:
+            return False
+        if valor > self.saldo:
+            return False
+        if valor > 500:
+            return False
+        self.saldo -= valor
+        saque = Saque(self.numero_transacao, valor, self.saldo)
+        conta_ativa.historico.adicionar_transacao(saque)
+        self.numero_transacao += 1
+        return True
+
+    def depositar(self, valor) -> bool:
+        """
+        Checa contra regaras de depósito, ajustar saldo, crie objeto Deposito, e atualizar historico.
+        Devolve boolean para indicar sucesso ou falha
+        """
+        if valor <= 0:
+            return False
+        self.saldo += valor
+        deposito = Deposito(self.numero_transacao, valor, self.saldo)
+        conta_ativa.historico.adicionar_transacao(deposito)
+        self.numero_transacao += 1
+        return True
+
+    def __str__(self) -> str:
+        return f"{self.__class__.__name__}: {', '.join([f'{chave}={valor}' for chave, valor in self.__dict__.items()])}"
+
+
+class ContaCorrente(Conta):
+    """
+    Herda de Conta, adiciona limite de valor de saque, e limite de saques diários.
+    Overrides sacar()
+    """
+    def __init__(self, limite=500, limite_saques=3) -> None:
+        super().__init__()
+        self._limite = limite
+        self._limite_saques = limite_saques
+
+    def sacar(self, valor) -> bool:
+        if self.historico.transacoes[-1].data != datetime.date.today():
+            self._limite_saques = 3
+        if valor <= 0:
+            return False
+        if valor > self.saldo:
+            return False
+        if valor > self._limite:
+            return False
+        if self._limite_saques <= 0:
+            return False
+        self.saldo -= valor
+        saque = Saque(self.numero_transacao, valor, self.saldo)
+        conta_ativa.historico.adicionar_transacao(saque)
+        self.numero_transacao += 1
+        self._limite_saques -= 1
+        return True
+
+
+# --------------------------------------------------
+
+
+clientes: list[Cliente] = []
+cliente: Cliente = None
+conta_ativa: Conta = None
+
+
+# --------------------------------------------------
+
+
+def limpa_tela():
     """Clears screen with newlines"""
-    print("\n" * 15)
+    print("\n" * 10)
+
 
 def pausa():
     """Pausa, espera "enter" do usuário"""
-    input('Aperta "enter" para continuar.')
+    input('Aperta "enter" para continuar.\n')
 
-def cria_usuario():
-    """
-    Cria novo usuário e adiciona à lista "usuarios"
 
-    Returns:
-        usuarios[usuario{},...]: lista de dicionários "usuario"
-            com nome, data de nascimento, cpf, e endereco
+# --------------------------------------------------
+
+
+def menu1() -> int:
     """
-    usuario = {"nome": None, "data_nascimento": None, "cpf": None, "endereco": None}
-    usuario['nome'] = input("Nome completo: ")
-    usuario['data_nascimento'] = input("Data de nascimento: ")
-    usuario['cpf'] = input("CPF (somente números): ")
-    for u in usuarios:
-        if usuario['cpf'] == u['cpf']:
-            print("Usuário com esse CPF já cadastrado.")
-            pausa()
-            return usuarios
-    usuario['endereco'] = input("Endereço no formato\
- 'logradouro, nro - bairro - cidade/sigla estado': ")
-    usuarios.append(usuario)
-    print("Usuário criado com sucesso!")
+    0. Sair.
+    1. Login com CPF.
+    2. Cria usuário novo.
+    """
+    limpa_tela()
+    menu = '''
+        Por favor, faça a sua escolha digitando um número
+        da menu embaixo, e em seguida pressiona "enter":
+
+        [1] Entrar
+        [2] Criar usuário novo
+
+        [0] Sair
+
+        => '''
+
+    selecao = int(input(dedent(menu)))
+
+    return selecao
+
+
+def login() -> Cliente:
+    """login com CPF"""
+    limpa_tela()
+    cpf = input("CPF (somente números): ")
+    for c in clientes:
+        if c.cpf == cpf:
+            return c
+    print("\nUsuário não encontrado.\n")
     pausa()
-    return usuarios
-
-def achar_usuario_por_cpf():
-    """
-    Usar CPF para encontrar usuario
-
-    Returns:
-        usuario{}: returns usuario dict se encontrado
-    """
-    cpf_procurado = input("CPF (somente números): ")
-    for usuario in usuarios:
-        if usuario["cpf"] == cpf_procurado:
-            return usuario
     return None
 
-def cria_conta():
+
+def cliente_novo() -> PessoaFisica:
+    """Cria cliente novo e devolve como PessoaFisica(Cliente)"""
+    limpa_tela()
+    nome = input("Nome completo: ")
+    cpf = input("CPF (somente números): ")
+    data_nascimento = input("Data de nascimento (dd/mm/aaaa): ")
+    endereco = input("Endereço (logradouro, nro - bairro - cidade/sigla estado): ")
+    return PessoaFisica(cpf, nome, data_nascimento, endereco)
+
+
+def sair():
+    """sai"""
+    limpa_tela()
+    print("Obrigado por usar os nossos serviços!\n")
+
+
+def menu2() -> int:
     """
-    Cria conta nova
-
-    Returns:
-        contas[conta{},...]: lista "contas" de dicionários "conta"
+    0. Voltar para menu anterior.
+    1. Criar conta nova.
+    2-n. Entrar em uma das contas existentes.
     """
-    usuario = achar_usuario_por_cpf()
-    if usuario is None:
-        print("Usuário não encontrado.")
-        pausa()
-        return contas
-    numero_conta_nova = 1
-    for c in contas:
-        if c["usuario"] == usuario:
-            numero_conta_nova += 1
-    conta = {"agencia": AGENCIA, "numero_conta": numero_conta_nova, "usuario": usuario,}
-    contas.append(conta)
-    print("Conta criado com sucesso!")
-    pausa()
-    return contas
+    limpa_tela()
+    if len(cliente.contas) == 0:
+        menu = f'''
+            Bem-vindo, {cliente.nome}.
+            Por favor, faça a sua escolha digitando um número
+            da menu embaixo, e em seguida pressiona "enter":
 
-def formatar_valor(valor, e_saque = False):
-    """Adiciona 'R$' e devolve como str"""
-    if e_saque:
-        return f"-R${f'{valor:.2f}'}"
-    return f"R${f'{valor:.2f}'}"
+            [1] Criar conta nova
 
-def centrar(string):
-    """Centrar string em coluna"""
-    return string.center(EVEN_COLUMNS - 1)
+            [0] Voltar para o menu anterior
 
-def solicitar_valor(operacao):
-    """Solicita valor que o usuário quer depositar ou sacar"""
-    if operacao == 1:
-        valor = float(input('''Quanto gostaria depositar? '''))
-        return valor
-    elif operacao == 2:
-        valor = float(input('''Quanto gostaria sacar? '''))
-        return valor
+            => '''
     else:
-        print("Erro")
+        contas_existentes = ""
+        for conta in cliente.contas:
+            contas_existentes += f"""[{cliente.contas.index(conta) + 2}] Agência: {conta.agencia}, Conta: {conta.numero}\n"""
+        menu = f'''\
+Bem-vindo, {cliente.nome}.
+Por favor, faça a sua escolha digitando um número
+da menu embaixo, e em seguida pressiona "enter":
 
-def get_datetime_atual():
-    """Devolve data e hora atual como strings"""
-    agora = datetime.datetime.now()
-    data = agora.strftime("%d/%m/%Y")
-    hora = agora.strftime("%H:%M")
-    return(data, hora)
+[1] Criar conta nova
 
-def checar_dia_novo(data_in, saques_hoje):
-    """
-    Caso é um dia novo, zerar o contador de saques
+Entrar conta -
+{contas_existentes}
 
-    Args:
-        data_in (<class 'datetime.date'>): data controle para contadores de transações 
-        saques_hoje (int): contador de saques diários
+[0] Voltar para o menu anterior
 
-    Returns:
-        <class 'datetime.date'>: atualizado se dia novo, mesmo que entrou se não
-        saques_hoje (int) atualizado (zerado ou mesmo que entrou)
-    """
-    if datetime.date.today() != data_in:
-        saques_hoje = 0
-        return (datetime.date.today(), saques_hoje)
-    return (data_in, saques_hoje)
+=> '''
+
+    selecao = int(input(dedent(menu)))
+
+    return selecao
 
 
-def deposita(valor, saldo_in, id_operacao_in, extrato_in):
-    """
-    1. Verifique se valor de depósito é válido.
-    2. Atualizar valores de saldo, e id de operação
-    3. Formatar strings para extrato e atualizar extrato
-    4. Devolver novo saldo, id, e extrato
-
-    Args:
-        valor (float): valor usuário quer depositar
-        saldo_in (float): saldo diponível antes de operação
-        id_operacao_in (int): número da última operação executada
-        extrato_in (str): extrato sem operação atual
-    
-    Returns:
-        saldo_out (float): saldo pós-transação
-        id_operacao_out (int): id da operação atual
-        extrato_out (str): extrato atualizada
-    """
-
-    # tests
-    if valor <= 0:
-        print("Valor selecionada inválida")
+def criar_conta() -> Conta:
+    """Cria e devolve conta nova"""
+    conta_nova = ContaCorrente.nova_conta()
+    if conta_nova:
+        limpa_tela()
+        print("Conta criada com sucesso!")
+        print(f"Agência: {conta_nova.agencia}")
+        print(f"Conta: {conta_nova.numero}\n")
         pausa()
-        return(saldo_in, id_operacao_in, extrato_in)
-
-    # update values
-    id_operacao_out = id_operacao_in + 1
-    saldo_out = saldo_in + valor
-
-    # Marca data e hora
-    data, hora = get_datetime_atual()
-
-    # format data for transaction history print-out
-    id_operacao_formatado = f'{newline if id_operacao_out != 1 else ""}\
-{str(id_operacao_out).rjust(3, "0").center(5, " ")}'
-    data = centrar(data)
-    hora = centrar(hora)
-    operacao = centrar("DEPOSITO")
-    valor_depositado_formatado = centrar(formatar_valor(valor))
-    saldo_formatado = centrar(formatar_valor(saldo_out))
-
-    # update transaction history
-    extrato_out = extrato_in + f"\
-{id_operacao_formatado}|{data}|{hora}|{operacao}|{valor_depositado_formatado}|{saldo_formatado}"
-
-    # print success message
-    print(f'''Você depositou R${valor:.2f}.
-O seu saldo é R${saldo_out:.2f}.''')
-    pausa()
-
-    return (saldo_out, id_operacao_out, extrato_out,)
+    return conta_nova
 
 
-def saque(valor, saldo_in, id_operacao_in, extrato_in, saques_hoje):
+def menu3() -> int:
     """
-    1. Verifique se valor de saque é válido.
-        a. Max. R$500
-        b. >= R$0
-        c. Saldo suficiente
-        d. Max. 3 saques por dia
-    2. Atualizar valores de saldo, id de operação, e número de saques feito hoje
-    3. Formatar strings para extrato e atualizar extrato
-    4. Devolver novo saldo, id, extrato e número de saques hoje
-
-    Args:
-        valor (float): valor usuário quer depositar
-        saldo_in (float): saldo diponível antes de operação
-        id_operacao_in (int): número da última operação executada
-        extrato_in (str): extrato sem operação atual
-        saques_hoje (int): número de saques já feito hoje
-    
-    Returns:
-        saldo_out (float): saldo pós-transação
-        id_operacao_out (int): id da operação atual
-        extrato_out (str): extrato atualizada
-        saques_hoje (int): número de saques feito incluíndo a operação atual
+    0. Voltar para menu anterior.
+    1. Depositar.
+    2. Sacar.
+    3. Exibir extrato.
     """
+    limpa_tela()
+    menu = f'''
+        Bem-vindo, {cliente.nome}.
+        Conta ativa - agência: {conta_ativa.agencia}, número: {conta_ativa.numero}
 
-    # tests
-    if valor > LIMITE_VALOR_SACADO_DIARIO:
-        print("Saque máximo: R$500.00.")
-        pausa()
-        return (saldo_in, id_operacao_in, extrato_in, saques_hoje)
-    if valor <= 0:
-        print("Valor selecionada inválida.")
-        pausa()
-        return (saldo_in, id_operacao_in, extrato_in, saques_hoje)
-    if valor > saldo:
-        print("Saldo insufficiente.")
-        pausa()
-        return (saldo_in, id_operacao_in, extrato_in, saques_hoje)
-    if saques_hoje >= LIMITE_SAQUES_DIARIOS:
-        print("Número de saques diários permitido excedido.")
-        pausa()
-        return (saldo_in, id_operacao_in, extrato_in, saques_hoje)
+        Por favor, faça a sua escolha digitando um número
+        da menu embaixo, e em seguida pressiona "enter":
 
-    # Marca data e hora
-    data, hora = get_datetime_atual()
+        [1] Depositar
+        [2] Sacar
+        [3] Exibir extrato
 
-    # update values
-    id_operacao_out = id_operacao_in + 1
-    saldo_out = saldo_in - valor
-    saques_hoje += 1
+        [0] Voltar para o menu anterior
 
-    # format data for transaction history print-out
-    id_operacao_formatado = f'{newline if id_operacao_out != 1 else ""}\
-{str(id_operacao_out).rjust(3, "0").center(5, " ")}'
-    data = centrar(data)
-    hora = centrar(hora)
-    operacao = centrar("SAQUE")
-    valor_sacado_formatado = centrar(formatar_valor(valor, True))
-    saldo_formatado = centrar(formatar_valor(saldo_out))
+        => '''
 
-    # update transaction history
-    extrato_out = extrato_in + f"\
-{id_operacao_formatado}|{data}|{hora}|{operacao}|{valor_sacado_formatado}|{saldo_formatado}"
+    selecao = int(input(dedent(menu)))
 
-    # print success message
-    print(f'''Você sacou R${valor:.2f}.
-O seu saldo é R${saldo_out:.2f}.''')
-    pausa()
+    return selecao
 
-    return (saldo_out, id_operacao_out, extrato_out, saques_hoje)
 
-def print_usuarios_contas():
-    """Imprime usuarios e contas para fins de testagem"""
-    print("usuarios:")
-    print(usuarios)
-    print("contas:")
-    print(contas)
+# --------------------------------------------------
+
 
 while True:
-    clear_screen()
-    data_controle, numero_saques_hoje = checar_dia_novo(data_controle, numero_saques_hoje)
-    opcao = int(input(menu))
+    limpa_tela()
 
-    if opcao == 0:
-        # sair
-        clear_screen()
-        print("Obrigado por usar os nossos serviços!")
+    # login to account or exit
+    selecao_menu1 = menu1()
+
+    if selecao_menu1 == 0:
+        limpa_tela()
+        print("Obrigado por usar os nossos serviços!\n")
         break
 
-    if opcao == 1:
-        # deposito
-        clear_screen()
+    # entrar
+    if selecao_menu1 == 1:
+        cliente = login()
 
-        # solicit deposit amount
-        valor_depositar = solicitar_valor(opcao)
+        if cliente is None:
+            continue
 
-        # executar depósito
-        saldo, id_operacao, extrato = deposita(
-            valor_depositar,
-            saldo,
-            id_operacao,
-            extrato)
+    # cliente novo
+    elif selecao_menu1 == 2:
+        cliente = cliente_novo()
+        clientes.append(cliente)
 
-    elif opcao == 2:
-        # saque
-        clear_screen()
+    while cliente is not None:
+        # Escolha criar uma conta, entra em uma conta existente, ou voltar
+        selecao_menu2 = menu2()
 
-        # solicit deposit amount
-        valor_sacar = solicitar_valor(opcao)
+        if selecao_menu2 == 0:
+            limpa_tela()
+            cliente = None
+            continue
 
-        # executar saque
-        saldo, id_operacao, extrato, numero_saques_hoje = saque(
-            valor_sacar,
-            saldo,
-            id_operacao,
-            extrato,
-            numero_saques_hoje)
+        if selecao_menu2 == 1:
+            cliente.contas.append(criar_conta())
 
-    elif opcao == 3:
-        # extrato
-        clear_screen()
-        imprime_extrato(saldo, extrato_atual=extrato)
-        pausa()
+        if selecao_menu2 >= 2:
+            conta_ativa = cliente.contas[selecao_menu2 - 2]
 
-    elif opcao == 4:
-        # Novo usuário
-        clear_screen()
-        usuarios = cria_usuario()
+        while conta_ativa is not None:
+            # choose transaction, historico, ou voltar
+            selecao_menu3 = menu3()
 
-    elif opcao == 5:
-        # Nova conta
-        clear_screen()
-        contas = cria_conta()
+            if selecao_menu3 == 0:
+                limpa_tela()
+                conta_ativa = None
+                continue
 
-    elif opcao == 6:
-        # opção segredo para testes
-        clear_screen()
-        print_usuarios_contas()
+            if selecao_menu3 == 1:
+                # depósito
+                limpa_tela()
+                valor_depositar = float(input("Quanto gostaria depositar? "))
+                resultado = conta_ativa.depositar(valor_depositar)
+                if resultado is True:
+                    print(f"\nVocê depositou R${valor_depositar:.2f}.")
+                    print(f"Saldo atual: R${conta_ativa.saldo:.2f}")
+                else:
+                    print("\nNão foi possível completar o depósito.")
+                pausa()
 
-    else:
-        # erro de digitação
-        clear_screen()
-        print("Input inválida. Por favor selecione novamente a operação desejada. ")
-        pausa()
+            elif selecao_menu3 == 2:
+                # saque
+                limpa_tela()
+                valor_sacar = float(input("Quanto gostaria sacar? "))
+                print("about to enter sacar()")
+                resultado = conta_ativa.sacar(valor_sacar)
+                if resultado is True:
+                    print(f"\nVocê sacou R${valor_sacar:.2f}.")
+                    print(f"Saldo atual: R${conta_ativa.saldo:.2f}")
+                else:
+                    print("\nNão foi possível completar o saque.")
+                pausa()
+
+            elif selecao_menu3 == 3:
+                # extrato
+                limpa_tela()
+                print(conta_ativa.historico)
+                pausa()
+
+            else:
+                # erro de digitação
+                limpa_tela()
+                print("Input inválida. Por favor tente novamente. ")
+                pausa()
+
+
+# --------------------------------------------------
+
+
+# ~~ Previous Version Comments ~~ #
+
+# v2: Aumentar compartimentalização com funções.
+# 1. ✅ Criar função deposita().
+# 2. ✅ Criar função saque().
+# 3. ✅ Mudar função de extrato para receber saldo como argumento posicional
+# e extrato como argumento nomeado.
+# NOTE: def f(pos1, pos2, /, pos_or_kw, *, kwd1, kwd2)
+# 4. ✅ Adiciona data e hora no extrato das transações
+# 5. ✅ Estabelece max. 3 saques por dia, verificado com datetime
+# 6. ✅ Criar função: cria_usuário()
+# O programa deve armazenar os usuários em uma lista, um usuário é composto por: nome,
+# data de nascimento, CPF e endereço. O endereço é uma string com o formato: logradouro,
+# nro - bairro - cidade/sigla estado. Deve ser armazenado somente os números do cpf.
+# Não podemos cadastrar 2 usuários com o mesmo cpf.
+# 7. ✅ Criar função: cria_conta()
+# O programa deve armazenar contas em uma lista, uma conta e composta por: agencia,
+# número da conta e usuário. O numero da conta e sequential, iniciando em 1.
+# O número da agencia e fixo: "0001". O usuário pode ter mais de uma conta,
+# mas uma conta pertence a somente um usuário.
+# 8. ✅ Criar "testes" para verificar funções acima
+# NOTE: Só criei funções para imprimir usuários e contas, não testes de verdade.
+
+
+# v1: Funcionamento básico, com opções de depositar, sacar, exibir extrato e sair
