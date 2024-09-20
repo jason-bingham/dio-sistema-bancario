@@ -1,3 +1,110 @@
+# Sistema Bancário v3
+
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+
+---
+
+Desafio: Implementar POO
+Programa: DIO - NTT Data Science Bootcamp
+
+## Melhorias implementados
+
+### Interfaces
+
+- Transacoes
+
+### Classes
+
+- Deposito(Transacao)
+- Saque(Transacao)
+- Historico
+- Cliente
+- PessoaFisica(Cliente)
+- Conta
+- ContaCorrente(Conta)
+- Fluxo do programa
+
+## Habilidades aprimorados / Conceitos firmados
+
+- Pensamento analítico e resolução de problemas
+- Estruturação do sistema, desde login até sair
+- UX mapping
+- PEP8
+
+## Para melhorar
+
+- Criar banco de dados
+- Error handling
+- Ainda tendo problemas com indentação, mesmo usando dedent().
+
+## Referências
+
+- Fowler, Martin. _Refatoração: Aperfeiçoando o design de códigos existentes_. 2nd ed., Novatec Editora, 2020.
+- [The Hitchhiker's Guide to Python](https://docs.python-guide.org/writing/style/#pep-8)
+- [PEP 8 - Style Guide for Python Code](https://peps.python.org/pep-0008/#introduction)
+
+---
+
+---
+
+---
+
+# Banking System v3
+
+![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
+
+---
+
+Challenge: Implement OOP
+Program: DIO - NTT Data Science Bootcamp
+
+## Improvements implemented
+
+### Interfaces
+
+- Transacoes
+
+### Classes
+
+- Deposito(Transacao)
+- Saque(Transacao)
+- Historico
+- Cliente
+- PessoaFisica(Cliente)
+- Conta
+- ContaCorrente(Conta)
+- Fluxo do programa
+
+## Skills improved / Concepts reinforced
+
+- Analytical thinking and problem solving
+- How to structure the system overall
+- UX mapping
+- PEP8
+- Type enforcement
+
+## Improvements to implement
+
+- Create database
+- Error handling
+- Still have problems with indentation and dedent().
+
+## References
+
+- Fowler, Martin. _Refatoração: Aperfeiçoando o design de códigos existentes_. 2nd ed., Novatec Editora, 2020.
+- [The Hitchhiker's Guide to Python](https://docs.python-guide.org/writing/style/#pep-8)
+- [PEP 8 - Style Guide for Python Code](https://peps.python.org/pep-0008/#introduction)
+
+---
+
+---
+
+---
+
+---
+
+---
+
 # Sistema Bancário v2
 
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
