@@ -6,8 +6,8 @@
 # @abstractmethod
 # registrar(conta: Conta)
 #
-# 2. class Deposito(Transacao)
-# ✅ propriedades:
+# ✅ 2. class Deposito(Transacao)
+# propriedades:
 # numero: int -> str
 # valor: float -> str
 # saldo: float -> str
@@ -15,10 +15,10 @@
 # hora: Datetime -> str
 # tipo: str
 # métodos:
-# ❌ registrar(conta: Conta)
+# registrar(conta: Conta)
 #
-# 3. class Saque(Transacao)
-# ✅ propriedades:
+# ✅ 3. class Saque(Transacao)
+# propriedades:
 # numero: int -> str
 # valor: float -> str
 # saldo: float -> str
@@ -26,7 +26,7 @@
 # hora: Datetime -> str
 # tipo: str
 # métodos:
-# ❌ registrar(conta: Conta)
+# registrar(conta: Conta)
 #
 # ✅ 4. class Historico
 # propriedades:
@@ -34,13 +34,13 @@
 # métodos:
 # adicionar_transacao(transacao: Transacao)
 #
-# 5. class Cliente
-# ✅ propriedades:
+# ✅ 5. class Cliente
+# propriedades:
 # endereco: str
 # contas: list[Conta]
 # métodos:
-# ❌ realizar_transacao(conta: Conta, transacao: Transacao)
-# ❌ adicionar_conta(conta: Conta)
+# realizar_transacao(conta: Conta, transacao: Transacao)
+# adicionar_conta(conta: Conta)
 #
 # ✅ 6. class PessoaFisica(Cliente)
 # propriedades:
@@ -91,43 +91,87 @@ from textwrap import dedent
 
 # ~~ Classes ~~ #
 
-class Transacao(ABC):  # pylint: disable=R0903
+class Transacao(ABC):
     """
     Abstract class para implementar através Deposito() e Saque()
     """
+    @property
     @abstractmethod
-    def registrar(self, conta):
-        """Implementado embaixo"""
+    def valor(self):  # pylint: disable=C0116
+        pass
+
+    @property
+    @abstractmethod
+    def data(self):  # pylint: disable=C0116
+        pass
+
+    @abstractmethod
+    def registrar(self):  # pylint: disable=C0116
+        pass
 
 
 class Deposito(Transacao):  # pylint: disable=R0903
     """Objeto que vai ser adicionado à lista 'transacoes' do histórico"""
-    def __init__(self, numero, valor, saldo) -> None:
-        self.numero = str(numero).rjust(3, "0")
-        self.valor = "R$" + str(f'{valor:.2f}')
-        self.saldo = "R$" + str(f'{saldo:.2f}')
+    def __init__(self, valor) -> None:
+        self._numero = str(conta_ativa.numero_transacao).rjust(3, "0")
+        self._valor = valor
+        self.saldo = conta_ativa.saldo + valor
         agora = datetime.datetime.now()
-        self.data = agora.strftime("%d/%m/%Y")
+        self._data = agora.strftime("%d/%m/%Y")
         self.hora = agora.strftime("%H:%M")
         self.tipo = "DEPOSITO"
 
-    def registrar(self, conta):
-        pass
+    @property
+    def numero(self):
+        return self._numero
+
+    @property
+    def valor(self):
+        return self._valor
+
+    @property
+    def data(self):
+        return self._data
+
+    def registrar(self):
+        sucesso = conta_ativa.depositar(self.valor)
+
+        if sucesso:
+            conta_ativa.historico.adicionar_transacao(self)
+            print(f"\nVocê depositou R${self._valor:.2f}.")
+            print(f"Saldo atual: R${self.saldo:.2f}")
+        else:
+            print("\nNão foi possível completar o depósito.")
 
 
 class Saque(Transacao):  # pylint: disable=R0903
     """Objeto que vai ser adicionado à lista 'transacoes' do histórico"""
-    def __init__(self, numero, valor, saldo) -> None:
-        self.numero = str(numero).rjust(3, "0")
-        self.valor = "R$" + str(f'{valor:.2f}')
-        self.saldo = "R$" + str(f'{saldo:.2f}')
+    def __init__(self, valor) -> None:
+        self.numero = str(conta_ativa.numero_transacao).rjust(3, "0")
+        self._valor = valor
+        self.saldo = conta_ativa.saldo - valor
         agora = datetime.datetime.now()
-        self.data = agora.strftime("%d/%m/%Y")
+        self._data = agora.strftime("%d/%m/%Y")
         self.hora = agora.strftime("%H:%M")
         self.tipo = "SAQUE"
 
-    def registrar(self, conta):
-        pass
+    @property
+    def valor(self):
+        return self._valor
+
+    @property
+    def data(self):
+        return self._data
+
+    def registrar(self):
+        sucesso = conta_ativa.sacar(self.valor)
+
+        if sucesso:
+            conta_ativa.historico.adicionar_transacao(self)
+            print(f"\nVocê sacou R${self._valor:.2f}.")
+            print(f"Saldo atual: R${self.saldo:.2f}")
+        else:
+            print("\nNão foi possível completar o saque.")
 
 
 class Historico:
@@ -141,6 +185,7 @@ class Historico:
         self.DISPLAY_WIDTH = 100
         self.COLUMN_ONE = 5
         self.EVEN_COLUMNS = int((self.DISPLAY_WIDTH - self.COLUMN_ONE) / 5) - 1
+        self.saldo_atual = "R$0.00"
 
     def adicionar_transacao(self, transacao):
         """
@@ -152,8 +197,9 @@ class Historico:
         data = "|" + transacao.data.center(self.EVEN_COLUMNS)
         hora = "|" + transacao.hora.center(self.EVEN_COLUMNS)
         tipo = "|" + transacao.tipo.center(self.EVEN_COLUMNS)
-        valor = "|" + transacao.valor.center(self.EVEN_COLUMNS)
-        saldo = "|" + transacao.saldo.center(self.EVEN_COLUMNS)
+        valor = "|" + ("R$" + str(f'{transacao.valor:.2f}')).center(self.EVEN_COLUMNS)
+        saldo = "|" + ("R$" + str(f'{transacao.saldo:.2f}')).center(self.EVEN_COLUMNS)
+        self.saldo_atual = "R$" + str(f'{transacao.saldo:.2f}')
         str_transacao = (numero_transacao
                          + data
                          + hora
@@ -189,7 +235,7 @@ class Historico:
 {historico_sem_movimentacao if len(self.transacoes) == 0 else self.historico_transacoes}
 {COLUMN_DIVS}
 {DOUBLE_LINE}
-{f"Saldo atual: {'R$0.00' if len(self.transacoes) == 0 else self.transacoes[-1].saldo}".center(self.DISPLAY_WIDTH)}
+{f"Saldo atual: {self.saldo_atual}".center(self.DISPLAY_WIDTH)}
 {DOUBLE_LINE}
 '''
         return historico
@@ -203,11 +249,11 @@ class Cliente:
         self.endereco = endereco
         self.contas: list[Conta] = []
 
-    def realizar_transacao(self, conta, transacao):
-        """Não usado"""
+    def realizar_transacao(self, transacao):
+        transacao.registrar()
 
     def adicionar_conta(self, conta):
-        """Não usado"""
+        self.contas.append(conta)
 
     def __str__(self) -> str:
         return f"{self.__class__.__name__}: {', '.join([f'{chave}={valor}' for chave, valor in self.__dict__.items()])}"
@@ -280,11 +326,7 @@ class Conta:
             return False
         if valor > self.saldo:
             return False
-        if valor > 500:
-            return False
         self.saldo -= valor
-        saque = Saque(self.numero_transacao, valor, self.saldo)
-        conta_ativa.historico.adicionar_transacao(saque)
         self.numero_transacao += 1
         return True
 
@@ -296,8 +338,6 @@ class Conta:
         if valor <= 0:
             return False
         self.saldo += valor
-        deposito = Deposito(self.numero_transacao, valor, self.saldo)
-        conta_ativa.historico.adicionar_transacao(deposito)
         self.numero_transacao += 1
         return True
 
@@ -316,7 +356,7 @@ class ContaCorrente(Conta):
         self._limite_saques = limite_saques
 
     def sacar(self, valor) -> bool:
-        if self.historico.transacoes[-1].data != datetime.date.today():
+        if self.historico.transacoes[-1].data != datetime.date.today().strftime("%d/%m/%Y"):
             self._limite_saques = 3
         if valor <= 0:
             return False
@@ -327,19 +367,9 @@ class ContaCorrente(Conta):
         if self._limite_saques <= 0:
             return False
         self.saldo -= valor
-        saque = Saque(self.numero_transacao, valor, self.saldo)
-        conta_ativa.historico.adicionar_transacao(saque)
         self.numero_transacao += 1
         self._limite_saques -= 1
         return True
-
-
-# --------------------------------------------------
-
-
-clientes: list[Cliente] = []
-cliente: Cliente = None
-conta_ativa: Conta = None
 
 
 # --------------------------------------------------
@@ -450,18 +480,6 @@ Entrar conta -
     return selecao
 
 
-def criar_conta() -> Conta:
-    """Cria e devolve conta nova"""
-    conta_nova = ContaCorrente.nova_conta()
-    if conta_nova:
-        limpa_tela()
-        print("Conta criada com sucesso!")
-        print(f"Agência: {conta_nova.agencia}")
-        print(f"Conta: {conta_nova.numero}\n")
-        pausa()
-    return conta_nova
-
-
 def menu3() -> int:
     """
     0. Voltar para menu anterior.
@@ -489,6 +507,34 @@ def menu3() -> int:
 
     return selecao
 
+
+def depositar():
+    """
+    1. Pede valor
+    2. Cria objeto Deposito
+    3. Mandar para Cliente.realizar_transacao
+    """
+    valor = float(input("Quanto gostaria depositar? "))
+    transacao = Deposito(valor)
+    cliente.realizar_transacao(transacao)
+
+
+def sacar():
+    """
+    1. Pede valor
+    2. Cria objeto Saque
+    3. Mandar para Cliente.realizar_transacao
+    """
+    valor = float(input("Quanto gostaria sacar? "))
+    transacao = Saque(valor)
+    cliente.realizar_transacao(transacao)
+
+
+# --------------------------------------------------
+
+clientes: list[Cliente] = []
+cliente: Cliente = None
+conta_ativa: Conta = None
 
 # --------------------------------------------------
 
@@ -526,7 +572,7 @@ while True:
             continue
 
         if selecao_menu2 == 1:
-            cliente.contas.append(criar_conta())
+            cliente.adicionar_conta(ContaCorrente.nova_conta())
 
         if selecao_menu2 >= 2:
             conta_ativa = cliente.contas[selecao_menu2 - 2]
@@ -543,26 +589,13 @@ while True:
             if selecao_menu3 == 1:
                 # depósito
                 limpa_tela()
-                valor_depositar = float(input("Quanto gostaria depositar? "))
-                resultado = conta_ativa.depositar(valor_depositar)
-                if resultado is True:
-                    print(f"\nVocê depositou R${valor_depositar:.2f}.")
-                    print(f"Saldo atual: R${conta_ativa.saldo:.2f}")
-                else:
-                    print("\nNão foi possível completar o depósito.")
+                depositar()
                 pausa()
 
             elif selecao_menu3 == 2:
                 # saque
                 limpa_tela()
-                valor_sacar = float(input("Quanto gostaria sacar? "))
-                print("about to enter sacar()")
-                resultado = conta_ativa.sacar(valor_sacar)
-                if resultado is True:
-                    print(f"\nVocê sacou R${valor_sacar:.2f}.")
-                    print(f"Saldo atual: R${conta_ativa.saldo:.2f}")
-                else:
-                    print("\nNão foi possível completar o saque.")
+                sacar()
                 pausa()
 
             elif selecao_menu3 == 3:
