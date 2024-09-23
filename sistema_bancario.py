@@ -94,6 +94,8 @@ from textwrap import dedent
 class Transacao(ABC):
     """
     Abstract class para implementar através Deposito() e Saque()
+    Propriedades: valor, data
+    Métodos: registrar()
     """
     @property
     @abstractmethod
@@ -111,7 +113,11 @@ class Transacao(ABC):
 
 
 class Deposito(Transacao):  # pylint: disable=R0903
-    """Objeto que vai ser adicionado à lista 'transacoes' do histórico"""
+    """
+    Herda de Transacao.
+    Objeto que vai ser adicionado à lista 'transacoes' do histórico.
+    Usado para registrar() sucesso ou falha da operação.
+    """
     def __init__(self, valor) -> None:
         self._numero = str(conta_ativa.numero_transacao).rjust(3, "0")
         self._valor = valor
@@ -122,7 +128,7 @@ class Deposito(Transacao):  # pylint: disable=R0903
         self.tipo = "DEPOSITO"
 
     @property
-    def numero(self):
+    def numero(self):  # pylint: disable=C0116
         return self._numero
 
     @property
@@ -145,7 +151,11 @@ class Deposito(Transacao):  # pylint: disable=R0903
 
 
 class Saque(Transacao):  # pylint: disable=R0903
-    """Objeto que vai ser adicionado à lista 'transacoes' do histórico"""
+    """
+    Herda de Transacao.
+    Objeto que vai ser adicionado à lista 'transacoes' do histórico.
+    Usado para registrar() sucesso ou falha da operação.
+    """
     def __init__(self, valor) -> None:
         self.numero = str(conta_ativa.numero_transacao).rjust(3, "0")
         self._valor = valor
@@ -179,13 +189,19 @@ class Historico:
     Armazena lista de transações e print string de transações
     formatado como tabela
     """
+
+    DISPLAY_WIDTH = 100
+    COLUMN_ONE = 5
+    EVEN_COLUMNS = int((DISPLAY_WIDTH - COLUMN_ONE) / 5) - 1
+
     def __init__(self) -> None:
         self.transacoes: list[Transacao] = []
-        self.historico_transacoes = ""
-        self.DISPLAY_WIDTH = 100
-        self.COLUMN_ONE = 5
-        self.EVEN_COLUMNS = int((self.DISPLAY_WIDTH - self.COLUMN_ONE) / 5) - 1
+        self.historico_transacoes = self.centrar(
+            "Nenhuma transação realizada", width=Historico.DISPLAY_WIDTH)
         self.saldo_atual = "R$0.00"
+
+    def centrar(self, string: str, width=EVEN_COLUMNS) -> str:
+        return string.center(width)
 
     def adicionar_transacao(self, transacao):
         """
@@ -193,12 +209,16 @@ class Historico:
         """
         self.transacoes.append(transacao)
 
-        numero_transacao = transacao.numero.center(self.COLUMN_ONE)
-        data = "|" + transacao.data.center(self.EVEN_COLUMNS)
-        hora = "|" + transacao.hora.center(self.EVEN_COLUMNS)
-        tipo = "|" + transacao.tipo.center(self.EVEN_COLUMNS)
-        valor = "|" + ("R$" + str(f'{transacao.valor:.2f}')).center(self.EVEN_COLUMNS)
-        saldo = "|" + ("R$" + str(f'{transacao.saldo:.2f}')).center(self.EVEN_COLUMNS)
+        numero_transacao = self.centrar(
+            transacao.numero, width=Historico.COLUMN_ONE)
+        data = "|" + self.centrar(transacao.data)
+        hora = "|" + self.centrar(transacao.hora)
+        tipo = "|" + self.centrar(transacao.tipo)
+        valor = (
+            "|"
+            + self.centrar("R$" + str(f'{transacao.valor:.2f}'))
+            )
+        saldo = "|" + self.centrar("R$" + str(f'{transacao.saldo:.2f}'))
         self.saldo_atual = "R$" + str(f'{transacao.saldo:.2f}')
         str_transacao = (numero_transacao
                          + data
@@ -207,6 +227,8 @@ class Historico:
                          + valor
                          + saldo)
 
+        if len(self.transacoes) == 1:
+            self.historico_transacoes = ""
         if len(self.transacoes) > 1:
             self.historico_transacoes += "\n"
         self.historico_transacoes += str_transacao
@@ -215,27 +237,39 @@ class Historico:
         DOUBLE_LINE = "=" * self.DISPLAY_WIDTH
         SINGLE_LINE = '-' * self.DISPLAY_WIDTH
         COLUMN_DIVS = (" " * self.COLUMN_ONE + "|"
-                       + (" " * self.EVEN_COLUMNS + "|")
-                       * 4)
-        historico_sem_movimentacao = f'''\
-{"Nenhuma transação realizada".center(self.DISPLAY_WIDTH, " ")}'''
+                       + (" " * self.EVEN_COLUMNS + "|") * 4)
+
+        detalhes_conta_linha1 = self.centrar(f"Titular: {cliente.nome}",
+                                             width=Historico.DISPLAY_WIDTH)
+        detalhes_conta_linha2 = self.centrar(
+            (f"Agência: {conta_ativa.agencia}, Conta: {conta_ativa.numero}"),
+            width=Historico.DISPLAY_WIDTH)
+        detalhes_conta = f"""{detalhes_conta_linha1}
+{detalhes_conta_linha2}"""
+        column_titles = (
+            self.centrar("#", width=Historico.COLUMN_ONE)
+            + "|" + self.centrar("Data")
+            + "|" + self.centrar("Hora")
+            + "|" + self.centrar("Operação")
+            + "|" + self.centrar("Valor")
+            + "|" + self.centrar("Saldo")
+        )
         historico = f'''
 {DOUBLE_LINE}
 
-{f"Agência: {conta_ativa.agencia}, Conta: {conta_ativa.numero}".center(self.DISPLAY_WIDTH)}
+{detalhes_conta}
 
 {DOUBLE_LINE}
-{"Histórico".center(self.DISPLAY_WIDTH)}
+{self.centrar("Histórico", width=Historico.DISPLAY_WIDTH)}
 {DOUBLE_LINE}
-{" # ".center(self.COLUMN_ONE, " ")}{"|" + "Data".center(self.EVEN_COLUMNS, " ")}\
-{"|" + "Hora".center(self.EVEN_COLUMNS, " ")}{"|" + "Operação".center(self.EVEN_COLUMNS, " ")}\
-{"|" + "Valor".center(self.EVEN_COLUMNS, " ")}{"|" + "Saldo".center(self.EVEN_COLUMNS, " ")}
+{column_titles}
 {SINGLE_LINE}
 {COLUMN_DIVS}
-{historico_sem_movimentacao if len(self.transacoes) == 0 else self.historico_transacoes}
+{self.historico_transacoes}
 {COLUMN_DIVS}
 {DOUBLE_LINE}
-{f"Saldo atual: {self.saldo_atual}".center(self.DISPLAY_WIDTH)}
+{self.centrar(f"Saldo atual: {self.saldo_atual}",
+              width=Historico.DISPLAY_WIDTH)}
 {DOUBLE_LINE}
 '''
         return historico
@@ -243,7 +277,8 @@ class Historico:
 
 class Cliente:
     """
-    Objeto para armazenar dados de clientes, incluindo a lista de contas ativas para cada cliente
+    Objeto para armazenar dados de clientes, incluindo
+    a lista de contas ativas para cada cliente
     """
     def __init__(self, endereco) -> None:
         self.endereco = endereco
@@ -256,11 +291,12 @@ class Cliente:
         self.contas.append(conta)
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}: {', '.join([f'{chave}={valor}' for chave, valor in self.__dict__.items()])}"
+        return f"""{self.__class__.__name__}: {', '.join(
+            [f'{chave}={valor}' for chave, valor in self.__dict__.items()])}"""
 
 
 class PessoaFisica(Cliente):
-    """Herda de Cliente. Adiciona cpf, nome, e data de nascimento, com getters para cpf e nome"""
+    """Herda de Cliente. Adiciona cpf, nome, e data de nascimento."""
     def __init__(self, cpf, nome, data_nascimento, endereco) -> None:
         super().__init__(endereco)
         self._cpf = cpf
@@ -285,10 +321,9 @@ class Conta:
     """
     def __init__(self) -> None:
         self._agencia = str(random.randint(1, 9999)).rjust(4, '0')
-        # self._agencia = "0001"
         self._saldo = 0.00
-        self._numero = str(random.randint(1, 99999)).rjust(5, '0') + '-' + str(random.randint(0, 9))
-        # self._numero = len(cliente.contas) + 1
+        self._numero = (str(random.randint(1, 99999)).rjust(5, '0')
+                        + '-' + str(random.randint(0, 9)))
         self._cliente = cliente
         self.historico = Historico()
         self.numero_transacao = 1
@@ -319,7 +354,8 @@ class Conta:
 
     def sacar(self, valor) -> bool:
         """
-        Checa contra regaras de saque, ajustar saldo, crie objeto Saque, e atualizar historico.
+        Checa contra regaras de saque, ajustar saldo, crie objeto Saque,
+        e atualizar historico.
         Devolve boolean para indicar sucesso ou falha
         """
         if valor <= 0:
@@ -332,7 +368,8 @@ class Conta:
 
     def depositar(self, valor) -> bool:
         """
-        Checa contra regaras de depósito, ajustar saldo, crie objeto Deposito, e atualizar historico.
+        Checa contra regaras de depósito, ajustar saldo, crie objeto Deposito,
+        e atualizar historico.
         Devolve boolean para indicar sucesso ou falha
         """
         if valor <= 0:
@@ -342,13 +379,15 @@ class Conta:
         return True
 
     def __str__(self) -> str:
-        return f"{self.__class__.__name__}: {', '.join([f'{chave}={valor}' for chave, valor in self.__dict__.items()])}"
+        return f"""{self.__class__.__name__}: {', '.join(
+            [f'{chave}={valor}' for chave, valor in self.__dict__.items()])}"""
 
 
 class ContaCorrente(Conta):
     """
-    Herda de Conta, adiciona limite de valor de saque, e limite de saques diários.
-    Overrides sacar()
+    Herda de Conta, adiciona limite de valor de saque,
+    e limite de saques diários.
+    Overrides Conta.sacar()
     """
     def __init__(self, limite=500, limite_saques=3) -> None:
         super().__init__()
@@ -356,7 +395,8 @@ class ContaCorrente(Conta):
         self._limite_saques = limite_saques
 
     def sacar(self, valor) -> bool:
-        if self.historico.transacoes[-1].data != datetime.date.today().strftime("%d/%m/%Y"):
+        hoje = datetime.date.today().strftime("%d/%m/%Y")
+        if self.historico.transacoes[-1].data != hoje:
             self._limite_saques = 3
         if valor <= 0:
             return False
@@ -411,7 +451,7 @@ def menu1() -> int:
     return selecao
 
 
-def login() -> Cliente:
+def login():
     """login com CPF"""
     limpa_tela()
     cpf = input("CPF (somente números): ")
@@ -429,7 +469,8 @@ def cliente_novo() -> PessoaFisica:
     nome = input("Nome completo: ")
     cpf = input("CPF (somente números): ")
     data_nascimento = input("Data de nascimento (dd/mm/aaaa): ")
-    endereco = input("Endereço (logradouro, nro - bairro - cidade/sigla estado): ")
+    endereco = input(
+        "Endereço (logradouro, nro - bairro - cidade/sigla estado): ")
     return PessoaFisica(cpf, nome, data_nascimento, endereco)
 
 
@@ -460,7 +501,9 @@ def menu2() -> int:
     else:
         contas_existentes = ""
         for conta in cliente.contas:
-            contas_existentes += f"""[{cliente.contas.index(conta) + 2}] Agência: {conta.agencia}, Conta: {conta.numero}\n"""
+            contas_existentes += (
+                f"[{cliente.contas.index(conta) + 2}] "
+                f"Agência: {conta.agencia}, Conta: {conta.numero}\n""")
         menu = f'''\
 Bem-vindo, {cliente.nome}.
 Por favor, faça a sua escolha digitando um número
@@ -490,7 +533,8 @@ def menu3() -> int:
     limpa_tela()
     menu = f'''
         Bem-vindo, {cliente.nome}.
-        Conta ativa - agência: {conta_ativa.agencia}, número: {conta_ativa.numero}
+        Agência: {conta_ativa.agencia}
+        Conta: {conta_ativa.numero}
 
         Por favor, faça a sua escolha digitando um número
         da menu embaixo, e em seguida pressiona "enter":
@@ -533,7 +577,7 @@ def sacar():
 # --------------------------------------------------
 
 clientes: list[Cliente] = []
-cliente: Cliente = None
+cliente: PessoaFisica = None
 conta_ativa: Conta = None
 
 # --------------------------------------------------
@@ -609,33 +653,3 @@ while True:
                 limpa_tela()
                 print("Input inválida. Por favor tente novamente. ")
                 pausa()
-
-
-# --------------------------------------------------
-
-
-# ~~ Previous Version Comments ~~ #
-
-# v2: Aumentar compartimentalização com funções.
-# 1. ✅ Criar função deposita().
-# 2. ✅ Criar função saque().
-# 3. ✅ Mudar função de extrato para receber saldo como argumento posicional
-# e extrato como argumento nomeado.
-# NOTE: def f(pos1, pos2, /, pos_or_kw, *, kwd1, kwd2)
-# 4. ✅ Adiciona data e hora no extrato das transações
-# 5. ✅ Estabelece max. 3 saques por dia, verificado com datetime
-# 6. ✅ Criar função: cria_usuário()
-# O programa deve armazenar os usuários em uma lista, um usuário é composto por: nome,
-# data de nascimento, CPF e endereço. O endereço é uma string com o formato: logradouro,
-# nro - bairro - cidade/sigla estado. Deve ser armazenado somente os números do cpf.
-# Não podemos cadastrar 2 usuários com o mesmo cpf.
-# 7. ✅ Criar função: cria_conta()
-# O programa deve armazenar contas em uma lista, uma conta e composta por: agencia,
-# número da conta e usuário. O numero da conta e sequential, iniciando em 1.
-# O número da agencia e fixo: "0001". O usuário pode ter mais de uma conta,
-# mas uma conta pertence a somente um usuário.
-# 8. ✅ Criar "testes" para verificar funções acima
-# NOTE: Só criei funções para imprimir usuários e contas, não testes de verdade.
-
-
-# v1: Funcionamento básico, com opções de depositar, sacar, exibir extrato e sair
